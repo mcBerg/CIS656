@@ -1,10 +1,8 @@
-package lab1;
-
 public class ProgramA {
 	static Integer counter = 0;
 
 	public static void main(String[] args) {
-		System.out.println("Run ("+args[0]+")");
+		System.out.println("Run (" + args[0] + ")");
 		Long startTime = System.currentTimeMillis();
 		Thread[] threads = new Thread[Integer.valueOf(args[0])];
 		for (int x = 0; x < Integer.valueOf(args[0]); x++) {
@@ -23,6 +21,7 @@ public class ProgramA {
 		Long endTime = System.currentTimeMillis();
 		System.out.println(endTime - startTime);
 	}
+
 	public static synchronized void inc() {
 		counter++;
 	}
