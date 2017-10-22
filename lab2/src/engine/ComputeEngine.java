@@ -19,7 +19,11 @@ public class ComputeEngine implements Compute {
 
 	public static void main(String[] args) {
 		if (System.getSecurityManager() == null) {
+			//System.setProperty("java.security.policy","file:/C:/Users/Jason Berg/git/CIS656/policy");
+			System.setProperty("java.security.policy","file:./policy");
 			System.setSecurityManager(new SecurityManager());
+			
+
 		}
 		try {
 			String name = "Compute";
@@ -28,6 +32,7 @@ public class ComputeEngine implements Compute {
 			Registry registry = LocateRegistry.getRegistry();
 			registry.rebind(name, stub);
 			System.out.println("ComputeEngine bound");
+			System.out.println(registry.lookup("Compute").toString());
 		} catch (Exception e) {
 			System.err.println("ComputeEngine exception:");
 			e.printStackTrace();
