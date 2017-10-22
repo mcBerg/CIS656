@@ -19,7 +19,6 @@ public class ComputeEngine implements Compute {
 
 	public static void main(String[] args) {
 		if (System.getSecurityManager() == null) {
-			//System.setProperty("java.security.policy","file:/C:/Users/Jason Berg/git/CIS656/policy");
 			System.setProperty("java.security.policy","file:./policy");
 			System.setSecurityManager(new SecurityManager());
 			
