@@ -8,18 +8,19 @@ public class Primes implements Task<String>, Serializable {
 
 	private static final long serialVersionUID = 2L;
 	private int max;
+	private int min;
 	
-	public Primes(int max) {
+	public Primes(int min, int max) {
 		this.max = max;
 	}
 
 	@Override
 	public String execute() {
-		return computePrimes(max);
+		return computePrimes(min, max);
 	}
 
-	public static String computePrimes(int max) {
-		return "2";
+	public static String computePrimes(int min, int max) {
+		return min+" "+max;
 	}
 	
 }
