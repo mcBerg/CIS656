@@ -9,6 +9,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 import compute.PresenceService;
@@ -48,9 +49,60 @@ public class ChatClient implements Serializable, PresenceService {
 		while (!command.equals("quit")) {
 			System.out.print(userName + ": ");
 			command = input.nextLine();
-
+			StringTokenizer tk = new StringTokenizer(command);
+			String commandPhrase = tk.nextToken();
 			// Commands go here!
-
+			switch (commandPhrase) {
+			case "friends":
+				try {
+					chat.listRegisteredUsers();
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				break;
+			case "talk":
+				try {
+					chat.lookup(tk.nextToken());
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				break;
+			case "broadcast":
+				try {
+					chat.listRegisteredUsers();
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				break;
+			case "busy":
+				chat.reg.setStatus(false);
+				try {
+					chat.updateRegistrationInfo(reg);
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				break;
+			case "available":
+				chat.reg.setStatus(true);
+				try {
+					chat.updateRegistrationInfo(reg);
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				break;
+			case "exit":
+				command = "quit";
+				break;
+			default:
+				break;
+			}
+			
+			
 		}
 		input.close();
 		try {
@@ -96,8 +148,7 @@ public class ChatClient implements Serializable, PresenceService {
 
 	@Override
 	public boolean updateRegistrationInfo(RegistrationInfo reg) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		return comp.updateRegistrationInfo(reg);
 	}
 
 	@Override
@@ -107,14 +158,12 @@ public class ChatClient implements Serializable, PresenceService {
 
 	@Override
 	public RegistrationInfo lookup(String name) throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		return comp.lookup(name);
 	}
 
 	@Override
 	public Vector<RegistrationInfo> listRegisteredUsers() throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		return comp.listRegisteredUsers();
 	}
 
 }
