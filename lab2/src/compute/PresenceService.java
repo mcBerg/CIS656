@@ -1,4 +1,4 @@
-package engine;
+package compute;
 
 /**
  * <p>Title: Lab2</p>
@@ -10,7 +10,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.Vector;
 
-import compute.RegistrationInfo;
+import client.RegistrationInfo;
 
 /**
  * The abstract interface that is to implemented by a remote

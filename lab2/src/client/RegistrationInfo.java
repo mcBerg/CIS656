@@ -1,4 +1,4 @@
-package compute;
+package client;
 
 /**
  * <p>Title: Lab2</p>
@@ -97,6 +97,10 @@ public class RegistrationInfo implements Serializable
 	 */
 	public void setPort(int port) {
 		this.port = port;
+	}
+	
+	public String toString() {
+		return getUserName() + " " + getHost() + " " + getPort() + " " + getStatus();
 	}
 
 }
