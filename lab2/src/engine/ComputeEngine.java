@@ -18,17 +18,25 @@ public class ComputeEngine implements Compute {
 	}
 
 	public static void main(String[] args) {
+		Registry registry = null;
+		
 		if (System.getSecurityManager() == null) {
-			System.setProperty("java.security.policy","file:./policy");
+			System.setProperty("java.security.policy", "file:./policy");
 			System.setSecurityManager(new SecurityManager());
-			
-
 		}
+		
+		try {
+			System.out.println("Creating RmiRegistry");
+			registry = java.rmi.registry.LocateRegistry.createRegistry(1099);
+		} catch (RemoteException e1) {
+			e1.printStackTrace();
+		}
+		
 		try {
 			String name = "Compute";
 			Compute engine = new ComputeEngine();
 			Compute stub = (Compute) UnicastRemoteObject.exportObject(engine, 0);
-			Registry registry = LocateRegistry.getRegistry();
+			registry = LocateRegistry.getRegistry();
 			registry.rebind(name, stub);
 			System.out.println("ComputeEngine bound");
 			System.out.println(registry.lookup("Compute").toString());
