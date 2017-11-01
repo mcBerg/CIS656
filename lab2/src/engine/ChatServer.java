@@ -24,7 +24,9 @@ public class ChatServer implements PresenceService {
 		Registry registry = null;
 
 		if (System.getSecurityManager() == null) {
-			System.setProperty("java.security.policy", "file:./policy");
+			if (System.getProperty("java.security.policy") == null) {
+				System.setProperty("java.security.policy", "file:./lab2/policy");
+			}
 			System.setSecurityManager(new SecurityManager());
 		}
 
