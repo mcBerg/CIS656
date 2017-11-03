@@ -4,8 +4,9 @@ import java.math.BigDecimal;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
-
 import compute.Compute;
+import client.Pi;
+import client.Primes;
 
 public class ComputePi {
 
@@ -14,7 +15,9 @@ public class ComputePi {
 		input = new Scanner(System.in);
 
 		if (System.getSecurityManager() == null) {
-			System.setProperty("java.security.policy", "file:./policy");
+			if (System.getProperty("java.security.policy") == null) {
+				System.setProperty("java.security.policy", "file:./lab2/policy");
+			}
 			System.setSecurityManager(new SecurityManager());
 		}
 
@@ -67,7 +70,7 @@ public class ComputePi {
 			String name = "Compute";
 			Registry registry = LocateRegistry.getRegistry(args[0]);
 			Compute comp = (Compute) registry.lookup(name);
-			// System.out.println(comp.toString());
+			System.out.println(comp.toString());
 			Pi task = new Pi(digits);
 			BigDecimal pi = comp.executeTask(task);
 			System.out.println(pi);
@@ -83,7 +86,7 @@ public class ComputePi {
 		int max = 0;
 
 		while (min <= 0 || max <=0) {
-			System.out.println("input min and max");
+			System.out.println("input min then max");
 			if (input.hasNextInt()) {
 				min = input.nextInt();
 			}
