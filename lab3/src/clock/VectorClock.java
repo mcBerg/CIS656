@@ -4,9 +4,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import jdk.nashorn.internal.parser.JSONParser;
+import jdk.nashorn.internal.runtime.ParserException;
 
 public class VectorClock implements Clock {
 
@@ -23,9 +25,10 @@ public class VectorClock implements Clock {
 			pids.add(s);
 		}
 		// Now ordered set of pids
-		Clock clock = new VectorClock();
+		VectorClock clock = new VectorClock();
 		for (String pid : pids) {
-			clock.addProcess(Integer.valueOf(pid), Math.max(clock.getTime(Integer.valueOf(pid)), other.getTime(Integer.valueOf(pid))));
+			System.out.println(pid+" "+this.getTime(pid)+" "+other.getTime(Integer.valueOf(pid)));
+			clock.addProcess(Integer.valueOf(pid), Math.max(this.getTime(pid), other.getTime(Integer.valueOf(pid))));
 		}
 		setClock(clock);
 
@@ -47,7 +50,6 @@ public class VectorClock implements Clock {
 
 	@Override
 	public boolean happenedBefore(Clock other) {
-		System.out.println(other.toString() + " > " + this.toString());
 		Set<String> pids = new TreeSet<String>(new StringNumComparator());
 		for (String s : clock.keySet()) {
 			pids.add(s);
@@ -57,8 +59,7 @@ public class VectorClock implements Clock {
 		}
 		// Now ordered set of pids
 		for (String key : pids) {
-			System.out.println("All pids: "+other.getTime(Integer.valueOf(key)) + " > " + clock.get(key));
-			if (other.getTime(Integer.valueOf(key)) > clock.get(key)) {
+			if (other.getTime(Integer.valueOf(key)) < getTime(Integer.valueOf(key))) {
 				return false;
 			}
 		}
@@ -75,20 +76,32 @@ public class VectorClock implements Clock {
 		for (String s : clock.keySet()) {
 			x += "\"" + s + "\":" + clock.get(s) + ",";
 		}
-		x = x.substring(0, x.length() - 1);
+		if (x.contains(",")) {
+			x = x.substring(0, x.length() - 1);
+		}
 		x += "}";
 		return x;
 	}
 
 	@Override
 	public void setClockFromString(String clock) {
-		System.out.println("Json String: " + clock);
-		JSONParser jsonParser = new JSONParser(clock, null, false);
-		JSONObject jsonObject = (JSONObject) jsonParser.parse();
-		this.clock = new TreeMap<String, Integer>(new StringNumComparator());
+		if ("{}".equals(clock)) {
+			this.clock = new TreeMap<String, Integer>(new StringNumComparator());
+			return;
+		}
+		JSONObject jsonObject = new JSONObject(clock);
 		for (String s : JSONObject.getNames(jsonObject)) {
 			System.out.println("Name: " + s + " Value: " + jsonObject.get(s));
-			this.clock.put(s, (Integer) jsonObject.get(s));
+			try {
+				jsonObject.getInt(s);
+			} catch (JSONException e) {
+				// Malformed String... fail silently, do not apply the whole string.
+				return;
+			}
+		}
+		this.clock = new TreeMap<String, Integer>(new StringNumComparator());
+		for (String s : JSONObject.getNames(jsonObject)) {
+			this.clock.put(s, jsonObject.getInt(s));
 		}
 	}
 
@@ -99,6 +112,10 @@ public class VectorClock implements Clock {
 			return clock.get(key);
 		}
 		return 0;
+	}
+
+	public int getTime(String p) {
+		return getTime(Integer.valueOf(p));
 	}
 
 	@Override

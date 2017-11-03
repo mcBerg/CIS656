@@ -62,6 +62,7 @@ public class VectorClockTests {
 			refClock.addProcess(i, refTimes[i]);
 			newClock.addProcess(i, newTimes[i]);
 		}
+		System.out.println("Failing test");
 		refClock.update(newClock);
 		assertEquals("Time for pid 0 should be taken from new vector.", newTimes[0], refClock.getTime(0));
 		assertEquals("Time for pid 1 should be taken from own vector.", refTimes[1], refClock.getTime(1));
@@ -232,7 +233,7 @@ public class VectorClockTests {
 			refClock.addProcess(i, refTimes[i]);
 		}
 		refClock.setClockFromString("{}");
-		assertEquals(refClock.toString(), "{}");
+		assertEquals("{}", refClock.toString());
 	}
 
 	@Test
