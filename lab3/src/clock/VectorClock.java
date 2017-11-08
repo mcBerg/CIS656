@@ -66,7 +66,7 @@ public class VectorClock implements Clock {
 		return true;
 	}
 
-	public String[] getPids(String other) {
+	public static String[] getPids(String other) {
 		JSONObject jsonObject = new JSONObject(other);
 		return JSONObject.getNames(jsonObject);
 	}
