@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 
 import clock.VectorClock;
+import clock.VectorClockComparator;
 import message.Message;
 import message.MessageComparator;
 import message.MessageTypes;
@@ -16,8 +17,9 @@ import queue.PriorityQueue;
 public class VectorClockClient {
 
 	PriorityQueue<Message> messageQueue;
-	VectorClock myClock;
-	int pid;
+	VectorClock sendClock;
+	VectorClock printClock;
+	Integer pid;
 	Scanner input;
 	DatagramSocket server;
 	InetAddress address;
@@ -26,7 +28,8 @@ public class VectorClockClient {
 
 	public VectorClockClient() throws SocketException, UnknownHostException {
 		messageQueue = new PriorityQueue<Message>(new MessageComparator());
-		myClock = new VectorClock();
+		sendClock = new VectorClock();
+		printClock = new VectorClock();
 		input = new Scanner(System.in);
 		int x = 2000;
 		while (server == null && x < 30000) {
@@ -38,16 +41,18 @@ public class VectorClockClient {
 		}
 		address = InetAddress.getLocalHost();
 		port = 8000;
+		pid = -1;
 	}
 
 	public boolean register() {
 		System.out.println("What is your name?");
 		userName = input.nextLine();
-		Message message = new Message(MessageTypes.REGISTER, userName, pid, myClock, userName);
+		Message message = new Message(MessageTypes.REGISTER, userName, pid, sendClock, userName);
 		Message.sendMessage(message, server, address, 8000);
 		Message reply = Message.receiveMessage(server);
 		pid = reply.pid;
-		myClock.addProcess(pid, 0);
+		sendClock.addProcess(pid, 0);
+		printClock.addProcess(pid, 0);
 		if (reply.type == MessageTypes.ERROR) {
 			System.out.println("Registration Error, goodbye");
 			return false;
@@ -80,67 +85,101 @@ public class VectorClockClient {
 	}
 
 	public void print() {
-
 		while (true) {
-			if (messageQueue.size() > 0) {
-				Message next = messageQueue.peek();
+			synchronized (messageQueue) {
+				if (!messageQueue.isEmpty()) {
+					Message next = messageQueue.peek();
+					// System.out.println("Trying: "+next.message+" PClock
+					// "+printClock.toString()+" vs MClock
+					// "+next.ts.toString());
+					VectorClockComparator vcc = new VectorClockComparator();
+					if (vcc.compare(next.ts, printClock) <= 0) {
+						System.out.println(next.sender + ": " + next.message);
+						printClock.update(next.ts);
+						messageQueue.poll();
+						continue;
+					}
+					VectorClock merge = new VectorClock();
+					for (String pid : VectorClock.getPids(printClock.toString())) {
+						merge.update(printClock);
+					}
+					for (String pid : VectorClock.getPids(next.ts.toString())) {
+						merge.update(next.ts);
+					}
 
-				if (!next.ts.happenedBefore(myClock) && !myClock.happenedBefore(next.ts)) {
-					System.out.println("Independent timings");
-					System.out.println(next.sender + ": " + next.message);
-					myClock.update(next.ts);
-				}
-				VectorClock merge = new VectorClock();
-				for (String pid : VectorClock.getPids(myClock.toString())) {
-					merge.addProcess(Integer.valueOf(pid), myClock.getTime(pid));
-				}
-				for (String pid : VectorClock.getPids(next.toString())) {
-					merge.addProcess(Integer.valueOf(pid), next.ts.getTime(pid));
-				}
-				int difference = 0;
-				for (String pid : VectorClock.getPids(merge.toString())) {
-					if (myClock.getTime(pid) == 0) {
-						// new pid
-						difference = merge.getTime(pid);
-						// time of 1 is okay if no other differences
+					boolean print = false;
+					if (next.ts.getTime(next.pid) == printClock.getTime(next.pid) + 1) {
+						print = true;
+						for (String pid : VectorClock.getPids(merge.toString())) {
+							if (next.pid == Integer.valueOf(pid)) {
+								continue;
+							}
+							if (next.ts.getTime(pid) > (printClock.getTime(pid))) {
+								print = false;
+							}
+						}
 					}
-					if (myClock.getTime(pid) > 0) { // pid is found
-						difference = Math.abs(myClock.getTime(pid) - merge.getTime(pid));
+					if (print) {
+						System.out.println(next.sender + ": " + next.message + " " + next.ts.toString());
+						printClock.update(next.ts);
+						messageQueue.poll();
 					}
-				}
-				if (difference <= 1) {
-					System.out.println(next.sender + ": " + next.message+" "+next.ts.toString());
-					myClock.update(next.ts);
-					messageQueue.poll();
 				}
 			}
 		}
 	}
 
 	public void send() {
-		System.out.print(userName + ": ");
-		String send = input.nextLine();
 		int x = 0;
-		while (!send.equals("quit")) {
-			myClock.tick(pid);
-			Message m = new Message(MessageTypes.CHAT_MSG, userName, pid, myClock, send);
-			Message.sendMessage(m, server, address, port);
-			System.out.print(userName + ": ");
-			// send = input.nextLine();
-			send = "" + (++x);
+		while (pid == -1) {
 			try {
-				Thread.sleep(2000);
+				Thread.sleep(100);
+				x++;
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			if (x > 1000) {
+				System.out.println("pid not set error, goodbye.");
+				System.exit(1);
+			}
 		}
+		String send = "";
+		while (!send.equals("quit")) {
+			if (!userName.contains("AutoType")) {
+				System.out.print(userName + ": ");
+				send = input.nextLine();
+			} else {
+				send = "" + (++x);
+				try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if (x >= 10) {
+					send = "quit";
+				}
+			}
+			sendClock.tick(pid);
+			Message m = new Message(MessageTypes.CHAT_MSG, userName, pid, sendClock, send);
+			Message.sendMessage(m, server, address, port);
+		}
+		System.exit(0);
 	}
 
 	public void listen() {
 		while (true) {
 			Message m = Message.receiveMessage(server);
-			messageQueue.add(m);
+			// System.out.println("Recieved: " + m.toString());
+			sendClock.update(m.ts);
+			if (m.type == MessageTypes.CHAT_MSG) {
+				// System.out.println("Added: " + m.sender + ": " + m.message +
+				// " " + m.ts.toString());
+				synchronized (messageQueue) {
+					messageQueue.add(m);
+				}
+			}
 		}
 	}
 }

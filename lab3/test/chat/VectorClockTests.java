@@ -335,5 +335,39 @@ public class VectorClockTests {
 		assertEquals(priorityQueue.toString(), "[{\"0\":1,\"1\":0,\"2\":0}, {\"0\":1,\"1\":1,\"2\":0}, {\"0\":1,\"1\":2,\"2\":0}, " + "{\"0\":2,\"1\":0,\"2\":0}, {\"0\":3,\"1\":2,\"2\":0}, {\"0\":4,\"1\":2,\"2\":0}, {\"0\":2,\"1\":3,\"2\":0}]");
 
 	}
+	
+	@Test
+	public void testClockSortingThree() {
+		VectorClock c = new VectorClock();
+		c.addProcess(0, 2);
+		c.addProcess(1, 2);
+		c.addProcess(2, 0);
+		
+		VectorClock b = new VectorClock();
+		b.addProcess(1, 1);
+		
+		VectorClock d = new VectorClock();
+		d.addProcess(1, 2);
+		
+		VectorClock a = new VectorClock();
+		a.addProcess(0, 1);
+		
+		VectorClock e = new VectorClock();
+		e.addProcess(0, 2);
+		
+		
+
+		
+		PriorityQueue<VectorClock> priorityQueue = new PriorityQueue<VectorClock>(new VectorClockComparator());
+		priorityQueue.add(a);
+		priorityQueue.add(b);
+		priorityQueue.add(c);
+		priorityQueue.add(d);
+		priorityQueue.add(e);
+		//priorityQueue.add(f);
+		//priorityQueue.add(g);
+
+		assertEquals("[{\"0\":1}, {\"1\":1}, {\"1\":2}, {\"0\":2}, {\"0\":2,\"1\":2,\"2\":0}]", priorityQueue.toString());
+	}
 
 }

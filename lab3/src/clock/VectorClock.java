@@ -27,7 +27,7 @@ public class VectorClock implements Clock {
 		// Now ordered set of pids
 		VectorClock clock = new VectorClock();
 		for (String pid : pids) {
-			System.out.println(pid+" "+this.getTime(pid)+" "+other.getTime(Integer.valueOf(pid)));
+			//System.out.println(pid+" "+this.getTime(pid)+" "+other.getTime(Integer.valueOf(pid)));
 			clock.addProcess(Integer.valueOf(pid), Math.max(this.getTime(pid), other.getTime(Integer.valueOf(pid))));
 		}
 		setClock(clock);
@@ -57,13 +57,13 @@ public class VectorClock implements Clock {
 		for (String s : getPids(other.toString())) {
 			pids.add(s);
 		}
-		// Now ordered set of pids
+		boolean allGOE = true;
 		for (String key : pids) {
 			if (other.getTime(Integer.valueOf(key)) < getTime(Integer.valueOf(key))) {
-				return false;
+				allGOE = false;
 			}
 		}
-		return true;
+		return allGOE;
 	}
 
 	public static String[] getPids(String other) {
@@ -91,7 +91,6 @@ public class VectorClock implements Clock {
 		}
 		JSONObject jsonObject = new JSONObject(clock);
 		for (String s : JSONObject.getNames(jsonObject)) {
-			System.out.println("Name: " + s + " Value: " + jsonObject.get(s));
 			try {
 				jsonObject.getInt(s);
 			} catch (JSONException e) {
@@ -99,7 +98,6 @@ public class VectorClock implements Clock {
 				return;
 			}
 		}
-		this.clock = new TreeMap<String, Integer>(new StringNumComparator());
 		for (String s : JSONObject.getNames(jsonObject)) {
 			this.clock.put(s, jsonObject.getInt(s));
 		}
