@@ -27,7 +27,7 @@ public class VectorClock implements Clock {
 		// Now ordered set of pids
 		VectorClock clock = new VectorClock();
 		for (String pid : pids) {
-			//System.out.println(pid+" "+this.getTime(pid)+" "+other.getTime(Integer.valueOf(pid)));
+			// System.out.println(pid+" "+this.getTime(pid)+" "+other.getTime(Integer.valueOf(pid)));
 			clock.addProcess(Integer.valueOf(pid), Math.max(this.getTime(pid), other.getTime(Integer.valueOf(pid))));
 		}
 		setClock(clock);
@@ -50,20 +50,57 @@ public class VectorClock implements Clock {
 
 	@Override
 	public boolean happenedBefore(Clock other) {
-		Set<String> pids = new TreeSet<String>(new StringNumComparator());
+		Set<String> allPids = new TreeSet<String>(new StringNumComparator());
+		Set<String> commonPids = new TreeSet<String>(new StringNumComparator());
 		for (String s : clock.keySet()) {
-			pids.add(s);
+			allPids.add(s);
 		}
 		for (String s : getPids(other.toString())) {
-			pids.add(s);
+			if (clock.keySet().contains(s)) {
+				commonPids.add(s);
+			}
+			allPids.add(s);
 		}
-		boolean allGOE = true;
-		for (String key : pids) {
-			if (other.getTime(Integer.valueOf(key)) < getTime(Integer.valueOf(key))) {
-				allGOE = false;
+
+		// Special cases
+
+		// First clock
+		if (clock.toString().equals("[{\"0\";1}]")) {
+			return true;
+		}
+		if (other.toString().equals("[{\"0\";1}]")) {
+			return false;
+		}
+		// Compare common pids: false if not all agree. 
+		boolean before = true;
+		boolean after = true;
+		for (String key : commonPids) {
+			if (getTime(Integer.valueOf(key)) > other.getTime(Integer.valueOf(key))) {
+				before = false;
+			} 
+			if (getTime(Integer.valueOf(key)) < other.getTime(Integer.valueOf(key))) {
+				after = false;
 			}
 		}
-		return allGOE;
+		if (before && !after) {return true;}
+		if (after && !before) {return false;}
+		if (!after && !before) {return false;} //Screwy result
+		// All commons must be equal
+		
+		// No common pids or common pids are equal: fewest pids wins: lowest unique pid wins
+		if (clock.size() != getPids(other.toString()).length) {
+			return (clock.size() < getPids(other.toString()).length);
+		}
+		for (String s : allPids) {
+			if (commonPids.contains(s)) {
+				continue;
+			}
+			if (clock.containsKey(s)) {
+				return true;
+			}
+			return false;
+		}
+		return false;
 	}
 
 	public static String[] getPids(String other) {
