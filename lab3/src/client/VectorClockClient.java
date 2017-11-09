@@ -120,7 +120,7 @@ public class VectorClockClient {
 						}
 					}
 					if (print) {
-						System.out.println(next.sender + ": " + next.message + " " + next.ts.toString());
+						System.out.println(next.sender + ": " + next.message);
 						printClock.update(next.ts);
 						messageQueue.poll();
 					}
