@@ -1,86 +1,125 @@
 package client;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
-import java.net.Socket;
-import java.net.URL;
 import java.net.UnknownHostException;
-import java.rmi.ConnectException;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import chord.StringKey;
 import compute.ChordPresenceService;
+import de.uniba.wiai.lspi.chord.com.local.Registry;
+import de.uniba.wiai.lspi.chord.data.URL;
+import de.uniba.wiai.lspi.chord.service.Chord;
+import de.uniba.wiai.lspi.chord.service.PropertiesLoader;
+import de.uniba.wiai.lspi.chord.service.ServiceException;
+import de.uniba.wiai.lspi.chord.service.impl.ChordImpl;
 
 public class ChordClient implements Serializable, ChordPresenceService {
 
-	
-	
 	private static final long serialVersionUID = 5144150709351448519L;
 	private ChordInfo reg;
 	private Registry registry;
 	private ChordPresenceService comp;
-	private Socket connection;
+	private Chord chord;
 
-	public ChordClient(ChordInfo reg) throws NotBoundException, IOException {
-		registry = LocateRegistry.getRegistry("127.0.0.1");
-		comp = (ChordPresenceService) registry.lookup("ChatServer");
-		this.reg = reg;
-		if (reg == null) {
-			System.out.println("Empty Registration Info");
-			System.exit(1);
-		}
-		if (!register(reg)) {
-			System.out.println("Could Not Register, Goodbye");
-			System.exit(0);
-		}
+	public ChordClient(ChordInfo reg, boolean master) {
+		URL localURL;
+		URL masterURL;
 
+		try {
+			if (master) {
+				System.out.println("Creating network on " + reg.getHost());
+				String urlString = URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL) + "://" + reg.getHost() + ":" + reg.getPort()+"/";
+				System.out.println(urlString);
+				localURL = new URL(urlString);
+				chord = new ChordImpl();
+				chord.create(localURL);
+			}
+
+			else {
+				System.out.println("Joining network on " + reg.getHost());
+				localURL = new URL(
+						URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL) + "://" + reg.getHost() + ":" + reg.getPort()+"/");
+				masterURL = new URL(URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL) + "://" + reg.getHost() + ":" + 8080+"/");
+				this.chord = new ChordImpl();
+				this.chord.join(localURL, masterURL);
+			}
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(-1);
+		} catch (ServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public static void main(String args[]) {
+		
+		PropertiesLoader.loadPropertyFile();
+		for(Object p :  System.getProperties().keySet()) {
+			System.out.println(p.toString() + " : " +System.getProperty(p.toString()));
+		}
+		System.out.println("Property " +System.getProperty("log4j.rootLogger"));
+		System.setProperty("log4j.rootLogger", "FATAL, FILE");
+		System.out.println("Property " +System.getProperty("log4j.rootLogger"));
+		
+		System.exit(-1);
+		
 		
 		if (args.length < 2 || args.length > 3) {
 			System.out.println("usage:\n\tjava ChordClient [-master] {user} {host}");
 			return;
 		}
-		
+
 		String userName = "";
 		String host = "";
 		boolean master = false;
 		int myPort = 0;
-		
+
 		if (args.length == 2) {
 			userName = args[0];
 			host = args[1];
 			myPort = (int) (Math.random() * 5535) + 60000;
 		}
-		
+
 		if (args.length == 3) {
 			if (!args[0].equals("-master")) {
 				System.out.println("usage:\n\tjava ChordClient [-master] {user} {host}");
 				return;
-			};
+			}
+			;
+			master = true;
 			userName = args[1];
 			host = args[2];
 			myPort = 8080;
 		}
 		
-		getSecurity();
+		try {
+			host = InetAddress.getLocalHost().getHostAddress();
+		} catch (UnknownHostException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
 		
-		
-		ChordInfo reg = new ChordInfo(userName, url.getHost(), url.getPort(), true);
+
+
+
+		ChordInfo reg = new ChordInfo(userName, host, myPort, true);
 		Scanner input = new Scanner(System.in);
 		String command = new String();
-		ChordConnectionListener listener = new ChordConnectionListener(reg);
+		ChordClient chat = getChordClient(reg, master);
+		ChordConnectionListener listener = new ChordConnectionListener(reg.getUserName(), chat.chord);
 		Thread t = new Thread(listener);
 		t.start();
-		ChordClient chat = getChordClient(reg);
+		
+
 		while (!command.equals("quit")) {
 			System.out.print(userName + ": ");
 			command = input.nextLine();
@@ -88,14 +127,8 @@ public class ChordClient implements Serializable, ChordPresenceService {
 			String commandPhrase = tk.nextToken();
 			// Commands go here!
 			switch (commandPhrase) {
-			case "friends":
-				friends(chat);
-				break;
 			case "talk":
 				talk(reg, chat, tk);
-				break;
-			case "broadcast":
-				broadcast(reg, chat, tk);
 				break;
 			case "busy":
 				busy(reg, chat);
@@ -106,8 +139,15 @@ public class ChordClient implements Serializable, ChordPresenceService {
 			case "exit":
 				/*
 				 * exit – When this command is entered, the ChordClient will
-				 * unregister itself with the ChordPresenceService and terminate.
+				 * unregister itself with the ChordPresenceService and
+				 * terminate.
 				 */
+				try {
+					chat.chord.leave();
+				} catch (ServiceException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				command = "quit";
 				break;
 			default:
@@ -116,32 +156,7 @@ public class ChordClient implements Serializable, ChordPresenceService {
 
 		}
 		input.close();
-		try {
-			chat.unregister(reg.getUserName());
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
 		System.exit(0);
-	}
-
-	private static void friends(ChordClient chat) {
-		/*
-		 * friends – When this command is entered, the client determines (via
-		 * the Presence Service) which users are registered with the presence
-		 * server and prints out the users’ names and whether they are available
-		 * or not available (via the status field in the registration
-		 * information).
-		 */
-		try {
-			Vector<ChordInfo> users = chat.listRegisteredUsers();
-			for (ChordInfo info : users) {
-				System.out.println(
-						info.getUserName() + " " + (info.getStatus() == true ? " is Available " : " is Busy "));
-			}
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	private static void available(ChordInfo reg, ChordClient chat) {
@@ -154,12 +169,6 @@ public class ChordClient implements Serializable, ChordPresenceService {
 		 */
 
 		chat.reg.setStatus(true);
-		try {
-			chat.updateChordInfo(reg);
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	private static void busy(ChordInfo reg, ChordClient chat) {
@@ -173,118 +182,35 @@ public class ChordClient implements Serializable, ChordPresenceService {
 		 */
 
 		chat.reg.setStatus(false);
-		try {
-			chat.updateChordInfo(reg);
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	private static void broadcast(ChordInfo reg, ChordClient chat, StringTokenizer tk) {
-		/*
-		 * broadcast {message} – The client broadcasts the message to every user
-		 * that is currently registered and available. Clients should NOT
-		 * broadcast the message to themselves.
-		 */
-
-		try {
-			Vector<ChordInfo> users = chat.listRegisteredUsers();
-
-			if (tk.hasMoreTokens()) {
-				String message = tk.nextToken("");
-				for (ChordInfo target : users) {
-					if (target.getUserName().equals(reg.getUserName())) {
-						continue;
-					}
-					if (target.getStatus()) {
-						Socket send = new Socket(target.getHost(), target.getPort());
-						OutputStreamWriter writer = new OutputStreamWriter(send.getOutputStream());
-						writer.write(reg.getUserName() + ":" + message);
-						writer.flush();
-						send.close();
-					}
-				}
-			} else {
-				System.out.println("No message found. Proper syntax is broadcast {message}.");
-			}
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	private static void talk(ChordInfo reg, ChordClient chat, StringTokenizer tk) {
-		/*
-		 * talk {username} {message} - When this command is entered, the client
-		 * 1) first checks to see if the user is present and available (via the
-		 * ChordPresenceService). 2) If the user is registered and available, a
-		 * connection to the target client is established, based on their
-		 * registration info, and they are sent the given message. Note that
-		 * when a client receives a message, it will simply print it out to the
-		 * console, and re- prompt the user to enter his/her next command. (i.e.
-		 * you will need multiple threads of execution here within your client
-		 * process.)
-		 */
-
 		try {
 			if (tk.hasMoreTokens()) {
-				ChordInfo target = chat.lookup(tk.nextToken());
-				if (target != null) {
-					if (target.getStatus()) {
-						if (tk.hasMoreTokens()) {
-							Socket send = new Socket(target.getHost(), target.getPort());
-							OutputStreamWriter writer = new OutputStreamWriter(send.getOutputStream());
-							String x = "";
-							x += tk.nextToken("");
-							writer.write("~"+reg.getUserName() + ":" + x);
-							writer.flush();
-							send.close();
-						} else {
-							System.out.println(
-									"You'll need to type a message to send. Proper syntax is talk {username} {message}.");
-						}
+				StringKey keyVal = new StringKey(tk.nextToken());
+					if (tk.hasMoreTokens()) {
+						String data = "~" + reg.getUserName() + ":" +tk.nextToken("");
+						chat.chord.insert(keyVal, data);
 					} else {
-						System.out.println("That user is busy.");
+					System.out.println(
+					"You'll need to type a message to send. Proper syntax is talk {username} {message}.");
 					}
 				} else {
-					System.out.println("Could not find that user. Proper syntax is talk {username} {message}.");
-				}
+				System.out.println("Could not find that user. Proper syntax is talk {username} {message}.");
 			}
-		} catch (ConnectException e) {
-			System.out.println("The server has disconnected. Will exit.");
-			System.exit(1);
-		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
+		} catch (ServiceException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	private static ChordClient getChordClient(ChordInfo reg) {
+	private static ChordClient getChordClient(ChordInfo reg, boolean master) {
 		ChordClient chat = null;
-		try {
-			chat = new ChordClient(reg);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		} catch (NotBoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
+		chat = new ChordClient(reg, master);
+
 		System.out.println("Connected as " + reg.toString());
+
 		return chat;
 	}
 

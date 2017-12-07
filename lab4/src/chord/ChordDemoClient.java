@@ -11,6 +11,7 @@ import java.net.UnknownHostException;
 import de.uniba.wiai.lspi.chord.data.URL;
 import de.uniba.wiai.lspi.chord.service.*;
 import de.uniba.wiai.lspi.chord.service.impl.*;
+import de.uniba.wiai.lspi.util.logging.Log4jLogger;
 
 import java.util.*;
 import java.io.Serializable;
@@ -97,6 +98,7 @@ public class ChordDemoClient {
 			System.out.println("usage:\n\tjava ChordClient -master|-notmaster bootstrap-host");
 			return;
 		}
+		
 		
 		// Step 1: Load the Chord properties files. 
 		PropertiesLoader.loadPropertyFile();
