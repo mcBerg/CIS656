@@ -1,5 +1,8 @@
 package client;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -9,6 +12,8 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.Vector;
+
+import org.apache.log4j.PropertyConfigurator;
 
 import chord.StringKey;
 import compute.ChordPresenceService;
@@ -27,7 +32,8 @@ public class ChordClient implements Serializable, ChordPresenceService {
 	private ChordPresenceService comp;
 	private Chord chord;
 
-	public ChordClient(ChordInfo reg, boolean master) {
+	public ChordClient(ChordInfo reg2, boolean master) {
+		this.reg = reg2;
 		URL localURL;
 		URL masterURL;
 
@@ -45,7 +51,7 @@ public class ChordClient implements Serializable, ChordPresenceService {
 				System.out.println("Joining network on " + reg.getHost());
 				localURL = new URL(
 						URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL) + "://" + reg.getHost() + ":" + reg.getPort()+"/");
-				masterURL = new URL(URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL) + "://" + reg.getHost() + ":" + 8080+"/");
+				masterURL = new URL(URL.KNOWN_PROTOCOLS.get(URL.SOCKET_PROTOCOL) + "://" + reg.getHost() + ":" + 8181+"/");
 				this.chord = new ChordImpl();
 				this.chord.join(localURL, masterURL);
 			}
@@ -61,15 +67,27 @@ public class ChordClient implements Serializable, ChordPresenceService {
 
 	public static void main(String args[]) {
 		
-		PropertiesLoader.loadPropertyFile();
-		for(Object p :  System.getProperties().keySet()) {
-			System.out.println(p.toString() + " : " +System.getProperty(p.toString()));
+		
+		
+		Properties props = new Properties();
+		try {
+			props.load(new FileInputStream("lab4/log4j.properties"));
+		} catch (FileNotFoundException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		} catch (IOException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
 		}
+		PropertyConfigurator.configure(props);
+		
+		PropertiesLoader.loadPropertyFile();
+		
 		System.out.println("Property " +System.getProperty("log4j.rootLogger"));
-		System.setProperty("log4j.rootLogger", "FATAL, FILE");
+		System.setProperty("log4j.rootLogger", "OFF");
 		System.out.println("Property " +System.getProperty("log4j.rootLogger"));
 		
-		System.exit(-1);
+		
 		
 		
 		if (args.length < 2 || args.length > 3) {
@@ -97,7 +115,7 @@ public class ChordClient implements Serializable, ChordPresenceService {
 			master = true;
 			userName = args[1];
 			host = args[2];
-			myPort = 8080;
+			myPort = 8181;
 		}
 		
 		try {
@@ -114,8 +132,8 @@ public class ChordClient implements Serializable, ChordPresenceService {
 		ChordInfo reg = new ChordInfo(userName, host, myPort, true);
 		Scanner input = new Scanner(System.in);
 		String command = new String();
-		ChordClient chat = getChordClient(reg, master);
-		ChordConnectionListener listener = new ChordConnectionListener(reg.getUserName(), chat.chord);
+		ChordClient chat = new ChordClient(reg, master);
+		ChordConnectionListener listener = new ChordConnectionListener(chat);
 		Thread t = new Thread(listener);
 		t.start();
 		
@@ -123,6 +141,7 @@ public class ChordClient implements Serializable, ChordPresenceService {
 		while (!command.equals("quit")) {
 			System.out.print(userName + ": ");
 			command = input.nextLine();
+			if (command.equals("")) {command = "default";}
 			StringTokenizer tk = new StringTokenizer(command);
 			String commandPhrase = tk.nextToken();
 			// Commands go here!
@@ -138,7 +157,7 @@ public class ChordClient implements Serializable, ChordPresenceService {
 				break;
 			case "exit":
 				/*
-				 * exit – When this command is entered, the ChordClient will
+				 * exit ï¿½ When this command is entered, the ChordClient will
 				 * unregister itself with the ChordPresenceService and
 				 * terminate.
 				 */
@@ -161,7 +180,7 @@ public class ChordClient implements Serializable, ChordPresenceService {
 
 	private static void available(ChordInfo reg, ChordClient chat) {
 		/*
-		 * available – The client updates its registration information with the
+		 * available ï¿½ The client updates its registration information with the
 		 * presence server, indicating it is now available. If the client is
 		 * already available when this command is entered, nothing needs to be
 		 * done, though it would be good to prompt the user and indicate they
@@ -173,7 +192,7 @@ public class ChordClient implements Serializable, ChordPresenceService {
 
 	private static void busy(ChordInfo reg, ChordClient chat) {
 		/*
-		 * busy – The client updates its registration with the presence server,
+		 * busy ï¿½ The client updates its registration with the presence server,
 		 * indicating it is not currently available. If the client is already in
 		 * not available when this command is entered, nothing needs to be done,
 		 * though it would be good to prompt the user and indicate they already
@@ -205,12 +224,8 @@ public class ChordClient implements Serializable, ChordPresenceService {
 	}
 
 	private static ChordClient getChordClient(ChordInfo reg, boolean master) {
-		ChordClient chat = null;
-
-		chat = new ChordClient(reg, master);
-
+		ChordClient chat = new ChordClient(reg, master);
 		System.out.println("Connected as " + reg.toString());
-
 		return chat;
 	}
 
@@ -254,6 +269,22 @@ public class ChordClient implements Serializable, ChordPresenceService {
 	@Override
 	public Vector<ChordInfo> listRegisteredUsers() throws RemoteException {
 		return comp.listRegisteredUsers();
+	}
+
+	public ChordInfo getReg() {
+		return reg;
+	}
+
+	public void setReg(ChordInfo reg) {
+		this.reg = reg;
+	}
+
+	public Chord getChord() {
+		return chord;
+	}
+
+	public void setChord(Chord chord) {
+		this.chord = chord;
 	}
 
 }
