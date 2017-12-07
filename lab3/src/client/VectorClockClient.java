@@ -89,12 +89,10 @@ public class VectorClockClient {
 			synchronized (messageQueue) {
 				if (!messageQueue.isEmpty()) {
 					Message next = messageQueue.peek();
-					// System.out.println("Trying: "+next.message+" PClock
-					// "+printClock.toString()+" vs MClock
-					// "+next.ts.toString());
+					//System.out.println("Trying: "+next.message+" PClock	"+printClock.toString()+" vs MClock "+next.ts.toString());
 					VectorClockComparator vcc = new VectorClockComparator();
-					if (vcc.compare(next.ts, printClock) <= 0) {
-						System.out.println(next.sender + ": " + next.message);
+					if (vcc.compare(printClock, next.ts) == 0) {
+						System.out.println("Less Than Current: "+next.sender + ": " + next.message);
 						printClock.update(next.ts);
 						messageQueue.poll();
 						continue;
@@ -120,7 +118,7 @@ public class VectorClockClient {
 						}
 					}
 					if (print) {
-						System.out.println(next.sender + ": " + next.message + " " + next.ts.toString());
+						System.out.println("Next clock: "+next.sender + ": " + next.message);
 						printClock.update(next.ts);
 						messageQueue.poll();
 					}
