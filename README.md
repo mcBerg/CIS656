@@ -10,3 +10,4 @@ java -cp ChatClient.jar;log4j.jar;openchord_1.0.4.jar client.ChordClient -master
 java -cp ChatClient.jar;log4j.jar;openchord_1.0.4.jar client.ChordClient Alice localhost
 //Bob
 java -cp ChatClient.jar;log4j.jar;openchord_1.0.4.jar client.ChordClient Bob localhost
+ 
