@@ -1,60 +1,60 @@
 package client;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Iterator;
-import java.util.Set;
-
-import chord.StringKey;
-import de.uniba.wiai.lspi.chord.service.Chord;
-import de.uniba.wiai.lspi.chord.service.ChordRetrievalFuture;
-import de.uniba.wiai.lspi.chord.service.ServiceException;
 
 public class ChordConnectionListener implements Runnable {
 
-	StringKey myKey;
-	Chord chord;
-	Set<Serializable> vals = null;
-	String username;
 	ChordInfo reg;
+	ServerSocket socketListener = null;
 
-	public ChordConnectionListener(ChordClient chat) {
-		this.reg = chat.getReg();
-		this.username = chat.getReg().getUserName();
-		myKey = new StringKey(username);
-		this.chord = chat.getChord();
+	public ChordConnectionListener(ChordInfo reg) {
+		this.reg = reg;
+
 	}
 
-	public ChordConnectionListener(ChordInfo reg, Chord chord) {
-		this.reg = reg;
-		this.username = reg.getUserName();
-		myKey = new StringKey(username);
-		this.chord = chord;
+	public void close() {
+		try {
+			if (!socketListener.isClosed()) {
+				socketListener.close();
+			}
+		} catch (IOException e) {
+			System.out.println("Socket Listener could not be closed");
+		}
 	}
 
 	@Override
 	public void run() {
-		while (true) {
+		while (socketListener == null) {
 			try {
-				vals = chord.retrieve(myKey);
-				Iterator<Serializable> it = vals.iterator();
-				while (it.hasNext()) {
-					String data = (String) it.next();
-
-					if (reg.getStatus()) {
-						System.out.println();
-						System.out.println(data);
-						System.out.print(username + ":");
-					}
-					chord.remove(myKey, data);
+				socketListener = new ServerSocket(reg.getPort());
+			} catch (BindException e) {
+				System.out.println("Port in use. Will increment.");
+				reg.setPort(reg.getPort() + 1);
+				if (reg.getPort() > 65535) {
+					System.out.println("No open ports. Will exit.");
+					System.exit(1);
 				}
-			} catch (ServiceException e) {
-				// TODO Auto-generated catch block
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
+		System.out.println("Listening for incoming sockets on: " + socketListener.getLocalPort());
+		try {
+			Socket s = null;
+
+			while (s == null || !s.isClosed()) {
+				s = socketListener.accept();
+				Thread t = new Thread(new ChordConnection(s, reg));
+				t.start();
+			}
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 }

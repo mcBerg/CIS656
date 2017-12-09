@@ -1,16 +1,16 @@
 package compute;
 
+import java.util.Vector;
+
 /**
  * <p>Title: Lab2</p>
  * <p>Description: Old School Instant Messaging Application </p>
  * @author Jonathan Engelsma
  * @version 1.0
  */
-import java.rmi.Remote;
-import java.rmi.RemoteException;
-import java.util.Vector;
 
 import client.ChordInfo;
+import de.uniba.wiai.lspi.chord.service.ServiceException;
 
 /**
  * The abstract interface that is to implemented by a remote
@@ -19,7 +19,7 @@ import client.ChordInfo;
  * determine and locate other users who are available for chat
  * sessions.
  */
-public interface ChordPresenceService extends Remote {
+public interface ChordPresenceService {
 
     /**
      * Register a client with the presence service.
@@ -27,7 +27,7 @@ public interface ChordPresenceService extends Remote {
      * @return true if the user was successfully registered, or false if somebody
      * the given name already exists in the system.
      */
-    boolean register(ChordInfo reg) throws RemoteException;
+    boolean register();
 
     /**
      * Updates the information of a currently registered client.
@@ -36,27 +36,21 @@ public interface ChordPresenceService extends Remote {
      * name is registered.
      *
      */
-    boolean updateChordInfo(ChordInfo reg) throws RemoteException;
+    boolean updateChordInfo();
 
     /**
      * Unregister a client from the presence service.  Client must call this
      * method when it terminates execution.
      * @param userName The name of the user to be unregistered.
      */
-    void unregister(String userName) throws RemoteException;
+    void unregister();
 
     /**
      * Lookup the registration information of another client.
      * @name The name of the client that is to be located.
      * @return The ChordInfo info for the client, or null if
      * no such client was found.
+     * @throws ServiceException 
      */
-    ChordInfo lookup(String name) throws RemoteException;
-
-    /**
-     * Determine all users who are currently registered in the system.
-     * @return An array of ChordInfo objects - one for each client
-     * present in the system.
-     */
-    Vector<ChordInfo> listRegisteredUsers() throws RemoteException;
+    ChordInfo lookup(String name) throws ServiceException;
 }

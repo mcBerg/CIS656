@@ -14,7 +14,7 @@ import java.io.*;
  */
 public class ChordInfo implements Serializable
 {
-	private static final long serialVersionUID = -1692519871343236571L;
+	private static final long serialVersionUID = 1L;
 	private String userName;
     private String host;
     private boolean status;
@@ -97,6 +97,20 @@ public class ChordInfo implements Serializable
 	 */
 	public void setPort(int port) {
 		this.port = port;
+	}
+	
+	
+	@Override
+	public int hashCode() {
+		return this.toString().hashCode();
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof ChordInfo)) {
+			return false;
+		}
+		return ((ChordInfo)obj).toString().equals(this.toString());
 	}
 	
 	public String toString() {

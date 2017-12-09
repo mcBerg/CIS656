@@ -27,8 +27,8 @@ public class ChordConnection implements Runnable {
 					if (reg.getStatus()) {
 						System.out.println();
 						System.out.println(x);
+						System.out.print(reg.getUserName()+": ");
 					}
-					System.out.print(reg.getUserName()+": ");
 				}
 			}
 		} catch (IOException e) {

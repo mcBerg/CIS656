@@ -1,0 +1,27 @@
+<project default='jar'>
+	
+		<path id="classpath">
+			<pathelement location="bin"/>
+			<fileset dir="lib/" includes="*.jar" />
+		</path>
+	
+	<property name='build' value='bin' />
+
+	<target name="clean">
+		<delete dir="${build}" />
+	</target>
+
+	<target name='compile' depends='clean'>
+		<mkdir dir="${build}" />
+		<javac includeantruntime="false" srcdir="src" destdir="${build}" />
+	</target>
+
+	<target name="jar" depends='compile'>
+		<jar destfile="ChatClient.jar" basedir="${build}">
+			<manifest>
+				<attribute name="Main-Class" value="client.ChordClient" />
+			</manifest>
+			<zipgroupfileset dir="lab4/lib" includes="**/*.jar" />
+		</jar>
+	</target>
+</project>
